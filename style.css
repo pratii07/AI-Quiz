@@ -9,7 +9,6 @@ body {
   align-items: center;
 }
 
-
 #quiz-container {
   max-width: 600px;
   width: 100%;
@@ -30,15 +29,17 @@ body {
 
 #input-section {
   display: flex;
+  flex-direction: column;
   gap: 10px;
   margin-bottom: 20px;
 }
+
 .brand h1 {
   font-size: 2rem;
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 5px; 
+  gap: 5px;
 }
 
 .orange {
@@ -52,7 +53,7 @@ body {
 .brand {
   margin-top: 40px;
   box-shadow: 0 0 5px rgb(233, 229, 229), 0 0 10px white;
-  padding: 15px; 
+  padding: 15px;
   border-radius: 7px;
   display: inline-block;
 }
