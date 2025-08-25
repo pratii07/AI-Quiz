@@ -1,179 +1,315 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const conceptInput = document.getElementById("concept-input");
-  const codingCheckbox = document.getElementById("coding-checkbox");
-  const startBtn = document.getElementById("start-btn");
-  const quizSection = document.getElementById("quiz-section");
-  const questionContainer = document.getElementById("question-container");
-  const optionsContainer = document.getElementById("options-container");
-  const nextBtn = document.getElementById("next-btn");
-  const resultSection = document.getElementById("result-section");
-  const scoreText = document.getElementById("score-text");
-  const restartBtn = document.getElementById("restart-btn");
-  const moreQuestionsBtn = document.getElementById("more-questions-btn");
+const API_KEY = "AIzaSyA1n2FOpGemnjc2_j-_BQZD7iXylaQFENs";
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
 
-  const API_KEY = "AIzaSyBbGO4zTKz9vxc2RDMAmPLByarSqcBikbg";
-  const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+let currentTopic = "";
+let currentDifficulty = "";
+let mode = "theory";
+let questionCount = 0;
+const MAX_QUESTIONS = 6;
 
-  let quizData = [];
-  let currentQuestionIndex = 0;
-  let score = 0;
-  let userAnswer = null;
-  let lastConcept = "";
+let correctAnswers = [];
+let wrongAnswers = [];
 
-  startBtn.addEventListener("click", async () => {
-    const concept = conceptInput.value.trim();
-    const onlyCoding = codingCheckbox.checked;
-    if (!concept) return alert("Please enter a concept name.");
+const motivationalQuotes = [
+  "Mistakes are proof you’re trying! 🚀",
+  "Every expert was once a beginner 🌱",
+  "Consistency beats intensity 🔥",
+  "Learning never stops 📚",
+  "Great job! Keep pushing forward 💪",
+];
 
-    lastConcept = concept;
-    startBtn.disabled = true;
-    startBtn.textContent = "Generating quiz...";
-
-    try {
-      let prompt = `Generate a quiz of 10 multiple-choice questions (with 4 options each) on the concept "${concept}".`;
-
-      if (onlyCoding) {
-        prompt += `
-                All questions MUST be strictly coding-related (like writing, debugging, or analyzing code).
-                Use code snippets and ask about outputs, logic, syntax, or functions — in JavaScript or Python only.
-                Do NOT include theoretical questions or definitions like "What is a loop?".`;
-                      }
-
-                      prompt += `
-                Output must be in this JSON format:
-                [
-                  {
-                    "question": "Your question?",
-                    "options": ["Option A", "Option B", "Option C", "Option D"],
-                    "answer": "Correct option text"
-                  }
-                ]
-                Only output JSON — no explanation.`;
-
-      const response = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
-        }),
-      });
-
-      const data = await response.json();
-      if (!data.candidates || !data.candidates.length) throw new Error("No response from Gemini API");
-
-      let rawText = data.candidates[0].content.parts[0].text;
-      const jsonStart = rawText.indexOf("[");
-      const jsonEnd = rawText.lastIndexOf("]") + 1;
-      if (jsonStart === -1 || jsonEnd === -1) throw new Error("Invalid JSON format from AI");
-
-      const jsonString = rawText.slice(jsonStart, jsonEnd);
-      quizData = JSON.parse(jsonString);
-
-      if (!Array.isArray(quizData) || quizData.length === 0) {
-        throw new Error("Empty quiz data");
-      }
-
-      currentQuestionIndex = 0;
-      score = 0;
-
-      conceptInput.value = "";
-      startBtn.disabled = false;
-      startBtn.textContent = "Generate Quiz";
-      document.getElementById("input-section").classList.add("hidden");
-      quizSection.classList.remove("hidden");
-      resultSection.classList.add("hidden");
-      moreQuestionsBtn.classList.add("hidden");
-
-      showQuestion();
-
-    } catch (error) {
-      alert("Failed to generate quiz: " + error.message);
-      startBtn.disabled = false;
-      startBtn.textContent = "Generate Quiz";
-    }
-  });
-
-  function showQuestion() {
-    nextBtn.disabled = true;
-    userAnswer = null;
-    optionsContainer.innerHTML = "";
-
-    const currentQ = quizData[currentQuestionIndex];
-    questionContainer.textContent = `Q${currentQuestionIndex + 1}: ${currentQ.question}`;
-
-    currentQ.options.forEach(option => {
-      const optionDiv = document.createElement("div");
-      optionDiv.classList.add("option");
-      optionDiv.textContent = option;
-      optionDiv.addEventListener("click", () => selectOption(optionDiv, option));
-      optionsContainer.appendChild(optionDiv);
-    });
+document.getElementById("startBtn").addEventListener("click", () => {
+  currentTopic = document.getElementById("topic").value.trim();
+  currentDifficulty = document.getElementById("difficulty").value;
+  mode = document.getElementById("mode").value;
+  if (!currentTopic) {
+    alert("Please enter a topic!");
+    return;
   }
-
-  function selectOption(optionDiv, option) {
-    if (userAnswer !== null) return;
-
-    userAnswer = option;
-    document.querySelectorAll(".option").forEach(opt => opt.classList.remove("selected"));
-    optionDiv.classList.add("selected");
-    nextBtn.disabled = false;
-  }
-
-  nextBtn.addEventListener("click", () => {
-    if (userAnswer === null) return;
-
-    const currentQ = quizData[currentQuestionIndex];
-    const optionsDivs = document.querySelectorAll(".option");
-
-    optionsDivs.forEach(optDiv => {
-      const isCorrect = optDiv.textContent === currentQ.answer;
-      if (optDiv.textContent === userAnswer) {
-        if (isCorrect) {
-          score++;
-          optDiv.classList.add("correct");
-        } else {
-          optDiv.classList.add("incorrect");
-        }
-      }
-      if (isCorrect) {
-        optDiv.classList.add("correct");
-      }
-    });
-
-    nextBtn.disabled = true;
-    currentQuestionIndex++;
-
-    if (currentQuestionIndex < quizData.length) {
-      setTimeout(() => {
-        showQuestion();
-      }, 2000);
-    } else {
-      setTimeout(showResult, 2000);
-    }
-  });
-
-  function showResult() {
-    quizSection.classList.add("hidden");
-    resultSection.classList.remove("hidden");
-    scoreText.textContent = `You scored ${score} out of ${quizData.length}!`;
-    moreQuestionsBtn.classList.remove("hidden");
-  }
-
-  restartBtn.addEventListener("click", () => {
-    quizData = [];
-    currentQuestionIndex = 0;
-    score = 0;
-    userAnswer = null;
-
-    document.getElementById("input-section").classList.remove("hidden");
-    quizSection.classList.add("hidden");
-    resultSection.classList.add("hidden");
-    moreQuestionsBtn.classList.add("hidden");
-  });
-
-  moreQuestionsBtn.addEventListener("click", () => {
-    if (!lastConcept) return alert("No previous concept found.");
-    conceptInput.value = lastConcept;
-    startBtn.click();
-  });
+  questionCount = 0;
+  correctAnswers = [];
+  wrongAnswers = [];
+  document.getElementById("setup").style.display = "none";
+  getQuestion();
 });
+
+document.getElementById("nextBtn").addEventListener("click", () => {
+  getQuestion();
+});
+
+async function getQuestion() {
+  if (questionCount >= MAX_QUESTIONS) {
+    showResult();
+    return;
+  }
+
+  questionCount++;
+  updateProgress();
+
+  let prompt;
+  if (mode === "theory") {
+    prompt = `Generate 1 multiple-choice theory question on "${currentTopic}" (${currentDifficulty}). 
+      Format:
+      Q: Question text
+      A) Option 1
+      B) Option 2
+      C) Option 3
+      D) Option 4
+      Answer: (correct option letter)
+      Hint: (short hint)
+      Explanation: (detailed explanation)`;
+  } else {
+    prompt = `Generate 1 multiple-choice coding question in "${currentTopic}" (${currentDifficulty}).
+      Provide problem statement, a code snippet, and 4 MCQ options.
+      Format:
+      Q: Question text
+      Code:
+      \`\`\`${currentTopic}
+      // code snippet
+      \`\`\`
+      A) Option 1
+      B) Option 2
+      C) Option 3
+      D) Option 4
+      Answer: (correct option letter)
+      Hint: (short hint)
+      Explanation: (detailed explanation)`;
+  }
+
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+    });
+
+    const data = await res.json();
+    const output =
+      data.candidates?.[0]?.content?.parts?.[0]?.text || "No output";
+    renderQuiz(output);
+  } catch (err) {
+    console.error(err);
+    alert("Error fetching quiz: " + err.message);
+  }
+}
+
+function renderQuiz(output) {
+  const quizDiv = document.getElementById("quiz");
+  quizDiv.innerHTML = "";
+  document.getElementById("nextBtn").style.display = "none";
+
+  const lines = output
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l);
+  const question =
+    lines.find((l) => l.startsWith("Q:")) || "Question not found";
+  const codeIndex = lines.findIndex((l) => l.startsWith("```"));
+  let codeSnippet = "";
+  let lang = "javascript";
+
+  if (codeIndex !== -1) {
+    const endIndex = lines
+      .slice(codeIndex + 1)
+      .findIndex((l) => l.startsWith("```"));
+    if (endIndex !== -1) {
+      codeSnippet = lines
+        .slice(codeIndex + 1, codeIndex + 1 + endIndex)
+        .join("\n");
+    }
+    if (lines[codeIndex].includes("python")) lang = "python";
+  }
+
+  const options = lines.filter((l) => /^[A-D]\)/.test(l));
+  const answerLine = lines.find((l) => l.startsWith("Answer:"));
+  const correctAnswer = answerLine ? answerLine.split(":")[1].trim() : "";
+  const hintLine = lines.find((l) => l.startsWith("Hint:"));
+  const explanationLine = lines.find((l) => l.startsWith("Explanation:"));
+
+  const qEl = document.createElement("div");
+  qEl.className = "question";
+  qEl.textContent = question;
+  quizDiv.appendChild(qEl);
+
+  if (codeSnippet) {
+    const pre = document.createElement("pre");
+    pre.innerHTML = `<code class="language-${lang}">${Prism.highlight(
+      codeSnippet,
+      Prism.languages[lang],
+      lang
+    )}</code>`;
+    quizDiv.appendChild(pre);
+
+    // Copy + Run Code buttons
+    const copyBtn = document.createElement("button");
+    copyBtn.textContent = "Copy Code";
+    copyBtn.onclick = () => navigator.clipboard.writeText(codeSnippet);
+
+    const runBtn = document.createElement("button");
+    runBtn.textContent = "Run Code (No Input)";
+    runBtn.onclick = () => {
+      try {
+        if (lang === "javascript") {
+          let output = eval(codeSnippet);
+          showConsole(String(output ?? "Executed!"));
+        } else {
+          showConsole("⚠️ Run supported only for JavaScript");
+        }
+      } catch (e) {
+        showConsole("Error: " + e.message);
+      }
+    };
+
+    // Testcase area
+    // Testcase area
+    const inputArea = document.createElement("input");
+    inputArea.type = "text";
+    inputArea.placeholder = "Enter your testcase (e.g. 5 or [1,2,3])";
+    inputArea.style.width = "100%";
+    inputArea.style.marginTop = "8px";
+    inputArea.style.padding = "6px";
+    inputArea.style.border = "1px solid #ccc";
+    inputArea.style.borderRadius = "6px";
+
+    const runWithInputBtn = document.createElement("button");
+    runWithInputBtn.textContent = "Run with Input";
+
+    runWithInputBtn.onclick = () => {
+      try {
+        if (lang === "javascript") {
+          const userInput = inputArea.value;
+
+          const func = new Function(
+            "codeSnippet",
+            "userInput",
+            `
+              // Run user code inside IIFE
+              (function(){
+                eval(codeSnippet);
+              })();
+
+              // Detect first function name
+              const match = codeSnippet.match(/function\\s+(\\w+)\\s*\\(/);
+              if (!match) return "⚠️ No function found";
+              const actualFuncName = match[1];
+
+              // Parse user input (try JSON first, fallback string/number)
+              let input;
+              try {
+                input = JSON.parse(userInput);
+              } catch {
+                input = isNaN(userInput) ? userInput : Number(userInput);
+              }
+
+              // Ensure function is available globally
+              if (typeof window[actualFuncName] === "undefined") {
+                window[actualFuncName] = eval("(" + codeSnippet.match(/function[\\s\\S]*/)[0] + ")");
+              }
+
+              // Call detected function
+              return (typeof window[actualFuncName] === "function")
+                ? window[actualFuncName](input)
+                : "⚠️ Function not defined properly";
+            `
+          );
+
+          const result = func(codeSnippet, userInput);
+          showConsole("Output: " + result);
+        } else {
+          showConsole("⚠️ Input run supported only for JavaScript");
+        }
+      } catch (e) {
+        showConsole("Error: " + e.message);
+      }
+    };
+
+    quizDiv.appendChild(copyBtn);
+    quizDiv.appendChild(runBtn);
+    quizDiv.appendChild(inputArea);
+    quizDiv.appendChild(runWithInputBtn);
+
+    quizDiv.appendChild(copyBtn);
+    quizDiv.appendChild(runBtn);
+    quizDiv.appendChild(inputArea);
+    quizDiv.appendChild(runWithInputBtn);
+  }
+
+  options.forEach((opt) => {
+    const btn = document.createElement("div");
+    btn.className = "option";
+    btn.textContent = opt;
+    btn.addEventListener("click", () => {
+      if (opt.startsWith(correctAnswer)) {
+        btn.style.background = "#d4edda";
+        btn.style.borderColor = "#28a745";
+        correctAnswers.push(question);
+      } else {
+        btn.style.background = "#f8d7da";
+        btn.style.borderColor = "#dc3545";
+        wrongAnswers.push(question);
+      }
+      document.getElementById("nextBtn").style.display = "inline-block";
+    });
+    quizDiv.appendChild(btn);
+  });
+
+  if (hintLine) {
+    const hintBtn = document.createElement("button");
+    hintBtn.textContent = "Show Hint";
+    hintBtn.onclick = () => alert(hintLine);
+    quizDiv.appendChild(hintBtn);
+  }
+  if (explanationLine) {
+    const expBtn = document.createElement("button");
+    expBtn.textContent = "Show Explanation";
+    expBtn.onclick = () => alert(explanationLine);
+    quizDiv.appendChild(expBtn);
+  }
+}
+
+function showConsole(msg) {
+  let consoleDiv = document.querySelector(".console");
+  if (!consoleDiv) {
+    consoleDiv = document.createElement("div");
+    consoleDiv.className = "console";
+    document.getElementById("quiz").appendChild(consoleDiv);
+  }
+  consoleDiv.textContent = msg;
+}
+
+function updateProgress() {
+  const percent = (questionCount / MAX_QUESTIONS) * 100;
+  document.getElementById("progressBar").style.width = percent + "%";
+}
+
+function showResult() {
+  const quizDiv = document.getElementById("quiz");
+  const score = `${correctAnswers.length}/${MAX_QUESTIONS}`;
+  const randomQuote =
+    motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
+
+  quizDiv.innerHTML = `
+      <h2><b>${randomQuote}</b></h2>
+      <h3>🎉 Quiz Completed!</h3>
+      <p><b>Score:</b> ${score}</p>
+      <p><b>⚠️ Weaknesses (need improvement):</b></p>
+      <ul>${
+        wrongAnswers.map((q) => `<li>${q}</li>`).join("") || "<li>None</li>"
+      }</ul>
+      <button onclick="restartQuiz()">Restart Quiz</button>
+    `;
+
+  if (correctAnswers.length >= MAX_QUESTIONS / 2) {
+    confetti();
+  }
+  document.getElementById("nextBtn").style.display = "none";
+}
+
+function restartQuiz() {
+  document.getElementById("setup").style.display = "block";
+  document.getElementById("quiz").innerHTML = "";
+  questionCount = 0;
+  correctAnswers = [];
+  wrongAnswers = [];
+  updateProgress();
+}
