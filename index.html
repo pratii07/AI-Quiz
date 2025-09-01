@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Quiz App</title>
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Prism.js for syntax highlighting -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h2>AI Quiz App</h2>
+
+    <div id="setup">
+      <input type="text" id="topic" placeholder="Enter topic (e.g. JavaScript)" style="width:100%; padding:8px;">
+      <select id="difficulty" style="width:100%; margin-top:10px; padding:8px;">
+        <option value="easy">Easy</option>
+        <option value="medium">Medium</option>
+        <option value="hard">Hard</option>
+      </select>
+      <select id="mode" style="width:100%; margin-top:10px; padding:8px;">
+        <option value="theory">Theory Questions</option>
+        <option value="coding">Coding Questions</option>
+      </select>
+      <button id="startBtn">Start Quiz</button>
+    </div>
+
+    
+    <div class="progress-container"><div class="progress-bar" id="progressBar"></div></div>
+
+    <div id="quiz"></div>
+    <button id="nextBtn">Next Question</button>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+<script src="script.js"></script>
+</body>
+</html>
